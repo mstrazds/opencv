@@ -68,7 +68,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //M*/
 
-#include <emscripten/val.h>
 #include <emscripten/bind.h>
 
 @INCLUDES@
@@ -215,23 +214,6 @@ namespace binding_utils
     Mat matT(const cv::Mat& obj)
     {
         return  Mat(obj.t());
-    }
-
-    Mat matFromImageData(const val& imageData) {
-        int width = imageData["width"].as<int>();
-        int height = imageData["height"].as<int>();
-        val data = imageData["data"];
-
-        std::vector<uint8_t> vec(width * height * 4);
-        auto memoryView = typed_memory_view<uint8_t>(vec.size(), vec.data());
-        val typedArray = val::global("Uint8Array").new_(val::typed_memory_view(memoryView.size(), memoryView.data()));
-        data.call<void>("forEach", typedArray);
-
-        Mat rawData(height, width, CV_8UC4, vec.data());
-        Mat result;
-        cvtColor(rawData, result, COLOR_RGBA2BGR);
-
-        return result;
     }
 
     Mat matInv(const cv::Mat& obj, int type)
@@ -468,10 +450,22 @@ namespace binding_utils
 #endif
 }
 
-void matToUint8Array(const cv::Mat& mat, val data) {
-    size_t size = mat.total() * mat.elemSize();
-    val memoryView = val::global("Uint8Array").new_(val::module_property("buffer"), mat.data, size);
-    data.call<void>("set", memoryView);
+Mat matFromImageData(const emscripten::val& imageData)
+{
+    int width = imageData["width"].as<unsigned>();
+    int height = imageData["height"].as<unsigned>();
+    size_t dataLength = width * height * 4;
+
+    std::vector<uchar> data;
+    data.reserve(dataLength);
+    emscripten::val memoryView = emscripten::typed_memory_view(dataLength, imageData["data"].as<uint8_t*>());
+    data.assign(memoryView.begin(), memoryView.end());
+
+    Mat rawData(height, width, CV_8UC4, data.data());
+    Mat result;
+    cvtColor(rawData, result, COLOR_RGBA2BGR);
+
+    return result;
 }
 
 EMSCRIPTEN_BINDINGS(binding_utils)
@@ -487,6 +481,7 @@ EMSCRIPTEN_BINDINGS(binding_utils)
     register_vector<cv::DMatch>("DMatchVector");
     register_vector<std::vector<cv::DMatch>>("DMatchVectorVector");
 
+    function("matFromImageData", &matFromImageData, allow_raw_pointers());
 
     emscripten::class_<cv::Mat>("Mat")
         .constructor<>()
@@ -540,7 +535,6 @@ EMSCRIPTEN_BINDINGS(binding_utils)
         .function("dot", select_overload<double(const Mat&, const Mat&)>(&binding_utils::matDot))
         .function("mul", select_overload<Mat(const Mat&, const Mat&, double)>(&binding_utils::matMul))
         .function("inv", select_overload<Mat(const Mat&, int)>(&binding_utils::matInv))
-        .function("matFromImageData", &binding_utils::matFromImageData, allow_raw_pointers())
         .function("t", select_overload<Mat(const Mat&)>(&binding_utils::matT))
         .function("roi", select_overload<Mat(const Rect&)const>(&cv::Mat::operator()))
         .function("diag", select_overload<Mat(const Mat&, int)>(&binding_utils::matDiag))
@@ -632,7 +626,6 @@ EMSCRIPTEN_BINDINGS(binding_utils)
     function("rotatedRectPoints", select_overload<emscripten::val(const cv::RotatedRect&)>(&binding_utils::rotatedRectPoints));
     function("rotatedRectBoundingRect", select_overload<Rect(const cv::RotatedRect&)>(&binding_utils::rotatedRectBoundingRect));
     function("rotatedRectBoundingRect2f", select_overload<Rect2f(const cv::RotatedRect&)>(&binding_utils::rotatedRectBoundingRect2f));
-    function("matToUint8Array", &matToUint8Array);
 
     emscripten::value_object<cv::KeyPoint>("KeyPoint")
         .field("angle", &cv::KeyPoint::angle)
