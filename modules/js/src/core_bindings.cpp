@@ -450,22 +450,26 @@ namespace binding_utils
 #endif
 }
 
-Mat matFromImageData(const emscripten::val& imageData)
-{
-    int width = imageData["width"].as<unsigned>();
-    int height = imageData["height"].as<unsigned>();
-    size_t dataLength = width * height * 4;
+cv::Mat matFromImageData(emscripten::val imageData) {
+    int rows = imageData["height"].as<int>();
+    int cols = imageData["width"].as<int>();
+    int type = imageData["type"].as<int>();
 
-    std::vector<uchar> data;
-    data.reserve(dataLength);
-    emscripten::val memoryView = emscripten::typed_memory_view(dataLength, imageData["data"].as<uint8_t*>());
-    data.assign(memoryView.begin(), memoryView.end());
+    size_t dataLength = rows * cols * CV_ELEM_SIZE(type);
 
-    Mat rawData(height, width, CV_8UC4, data.data());
-    Mat result;
-    cvtColor(rawData, result, COLOR_RGBA2BGR);
+    // Access the ImageData.data property as a TypedArray
+    emscripten::val typedArray = imageData["data"];
 
-    return result;
+    // Create a temporary vector to hold the pixel data
+    std::vector<uint8_t> data(dataLength);
+
+    // Copy the pixel data from the TypedArray to the temporary vector
+    emscripten::val::global("Uint8Array").new_(typedArray).call<void>("forEach", emscripten::val::module_property("forEachHelper"));
+
+    // Initialize the Mat with the temporary vector's data
+    cv::Mat mat(rows, cols, type, data.data());
+
+    return mat.clone();
 }
 
 EMSCRIPTEN_BINDINGS(binding_utils)
