@@ -68,6 +68,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //M*/
 
+#include <emscripten/val.h>
 #include <emscripten/bind.h>
 
 @INCLUDES@
@@ -467,6 +468,12 @@ namespace binding_utils
 #endif
 }
 
+void matToUint8Array(const cv::Mat& mat, val data) {
+    size_t size = mat.total() * mat.elemSize();
+    val memoryView = val::global("Uint8Array").new_(val::module_property("buffer"), mat.data, size);
+    data.call<void>("set", memoryView);
+}
+
 EMSCRIPTEN_BINDINGS(binding_utils)
 {
     register_vector<int>("IntVector");
@@ -625,6 +632,7 @@ EMSCRIPTEN_BINDINGS(binding_utils)
     function("rotatedRectPoints", select_overload<emscripten::val(const cv::RotatedRect&)>(&binding_utils::rotatedRectPoints));
     function("rotatedRectBoundingRect", select_overload<Rect(const cv::RotatedRect&)>(&binding_utils::rotatedRectBoundingRect));
     function("rotatedRectBoundingRect2f", select_overload<Rect2f(const cv::RotatedRect&)>(&binding_utils::rotatedRectBoundingRect2f));
+    function("matToUint8Array", &matToUint8Array);
 
     emscripten::value_object<cv::KeyPoint>("KeyPoint")
         .field("angle", &cv::KeyPoint::angle)
