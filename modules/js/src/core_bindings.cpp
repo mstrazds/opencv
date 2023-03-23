@@ -222,8 +222,8 @@ namespace binding_utils
         val data = imageData["data"];
 
         std::vector<uint8_t> vec(width * height * 4);
-        val memoryView = typed_memory_view<uint8_t>(vec.size(), vec.data());
-        data.call<void>("forEach", val::global("Uint8Array").new_(memoryView));
+        auto memoryView = typed_memory_view<uint8_t>(vec.size(), vec.data());
+        data.call<void>("forEach", val::global("Uint8Array").new_(memoryView.buffer()));
 
         Mat rawData(height, width, CV_8UC4, vec.data());
         Mat result;
