@@ -223,7 +223,7 @@ namespace binding_utils
 
         std::vector<uint8_t> vec(width * height * 4);
         auto memoryView = typed_memory_view<uint8_t>(vec.size(), vec.data());
-        val typedArray = val::global("Uint8Array").new_(val::module_property("buffer"), memoryView.data(), memoryView.size());
+        val typedArray = val::global("Uint8Array").new_(memoryView.data(), memoryView.size());
         data.call<void>("forEach", typedArray);
 
         Mat rawData(height, width, CV_8UC4, vec.data());
