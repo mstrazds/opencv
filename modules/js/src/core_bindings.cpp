@@ -216,18 +216,16 @@ namespace binding_utils
         return  Mat(obj.t());
     }
 
-    Mat matFromImageData(const emscripten::val& imageData)
-    {
-        int width = imageData["width"].as<unsigned>();
-        int height = imageData["height"].as<unsigned>();
-        size_t dataLength = width * height * 4;
+    Mat matFromImageData(const val& imageData) {
+        int width = imageData["width"].as<int>();
+        int height = imageData["height"].as<int>();
+        val data = imageData["data"];
 
-        std::vector<uchar> data;
-        data.reserve(dataLength);
-        emscripten::val memoryView = emscripten::typed_memory_view(dataLength, imageData["data"].as<uint8_t*>());
-        data.assign(memoryView.begin(), memoryView.end());
+        std::vector<uint8_t> vec(width * height * 4);
+        val memoryView = typed_memory_view<uint8_t>(vec.size(), vec.data());
+        data.call<void>("forEach", val::global("Uint8Array").new_(memoryView));
 
-        Mat rawData(height, width, CV_8UC4, data.data());
+        Mat rawData(height, width, CV_8UC4, vec.data());
         Mat result;
         cvtColor(rawData, result, COLOR_RGBA2BGR);
 
