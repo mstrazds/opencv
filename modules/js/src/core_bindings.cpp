@@ -223,7 +223,7 @@ namespace binding_utils
 
         std::vector<uint8_t> vec(width * height * 4);
         auto memoryView = typed_memory_view<uint8_t>(vec.size(), vec.data());
-        data.call<void>("forEach", val::global("Uint8Array").new_(memoryView.buffer));
+        data.call<void>("forEach", val::global("Uint8Array").new_(memoryView.data(), memoryView.size()));
 
         Mat rawData(height, width, CV_8UC4, vec.data());
         Mat result;
@@ -532,7 +532,7 @@ EMSCRIPTEN_BINDINGS(binding_utils)
         .function("dot", select_overload<double(const Mat&, const Mat&)>(&binding_utils::matDot))
         .function("mul", select_overload<Mat(const Mat&, const Mat&, double)>(&binding_utils::matMul))
         .function("inv", select_overload<Mat(const Mat&, int)>(&binding_utils::matInv))
-        .function("matFromImageData", &matFromImageData, allow_raw_pointers())
+        .function("matFromImageData", &binding_utils::matFromImageData, allow_raw_pointers())
         .function("t", select_overload<Mat(const Mat&)>(&binding_utils::matT))
         .function("roi", select_overload<Mat(const Rect&)const>(&cv::Mat::operator()))
         .function("diag", select_overload<Mat(const Mat&, int)>(&binding_utils::matDiag))
